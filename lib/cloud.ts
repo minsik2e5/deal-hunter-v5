@@ -1,5 +1,6 @@
 import { serializeState } from './state';
-const endpoint = import.meta.env.VITE_DEAL_HUNTER_API_URL || '';
+// 운영 Worker API 기본 경로. 빌드 환경변수가 없어도 운영 서버에 연결되도록 한다.
+const endpoint = import.meta.env.VITE_DEAL_HUNTER_API_URL || '/api/cloud';
 let code = '';
 export function setAccessCode(value:string) { code = value; }
 export function cloudConfigured() { return Boolean(endpoint); }

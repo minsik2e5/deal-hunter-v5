@@ -9,6 +9,7 @@ import { apiFetch } from "../lib/cloud";
 import { useLedgerSync } from "../lib/use-ledger-sync";
 import { validateState, serializeState, validDate, businessDate } from "../lib/state";
 import { marketplaceLinks, registrationState, type MarketplaceLink } from "../lib/marketplace";
+import { displayName, fullName } from "../lib/display";
 
 type View = "home" | "inventory" | "evidence" | "products" | "buy" | "money" | "season" | "queue" | "analytics" | "market" | "settings" | "pricing";
 type Attachment = { name: string; type: string; size: number; data?: string; key?: string; url?: string; kind?: "reference"; sourceUrl?: string; sourceImageUrl?: string };
@@ -987,7 +988,7 @@ export default function Home() {
       <section className="card home-inventory">
         <SectionTitle title={`현재 재고 ${active.length}개`} action="전체 재고 보기" onClick={() => { setInventoryFilter("전체"); setView("inventory"); }} />
         <div className="home-list">
-          {recentItems.filter(i => active.some(a => a.id === i.id)).slice(0, 5).map(i => <button key={i.id} onClick={() => setEditing({ ...makeDraft(i)})}><span className="product-dot">{i.brand.slice(0, 1) || "?"}</span><span><b>{i.brand} {i.name}</b><small>{i.size || "사이즈 미입력"} · {i.acquiredDate ? `${days(i.acquiredDate)}일 보유` : "입고일 확인"}</small></span><strong>{won(i.expectedPrice || totalCost(i))}</strong><em>›</em></button>)}
+          {recentItems.filter(i => active.some(a => a.id === i.id)).slice(0, 5).map(i => <button key={i.id} onClick={() => setEditing({ ...makeDraft(i)})}><span className="product-dot">{i.brand.slice(0, 1) || "?"}</span><span><b>{fullName(i)}</b><small>{i.size || "사이즈 미입력"} · {i.acquiredDate ? `${days(i.acquiredDate)}일 보유` : "입고일 확인"}</small></span><strong>{won(i.expectedPrice || totalCost(i))}</strong><em>›</em></button>)}
         </div>
       </section>
     </>
@@ -1088,7 +1089,7 @@ export default function Home() {
             <div className={`inventory-photo ${completed ? "is-sold" : ""}`}>{photo ? <img src={photo} alt={`${i.brand} ${i.name}`} loading="lazy" /> : <span>{i.brand.slice(0, 1) || "?"}<small>사진 없음</small></span>}{completed && <div className="inventory-sale-overlay"><span>판매완료</span></div>}</div>
             <div className="inventory-card-info">
               <strong>{completed ? (i.actualPrice > 0 ? won(revenue(i)) : "판매가 확인 필요") : i.expectedPrice > 0 ? won(i.expectedPrice) : "판매가 미입력"}</strong>
-              <h3>{i.brand} {i.name}</h3>
+              <h3><span className="brand-line">{i.brand}</span>{displayName(i)}</h3>
               <p>{i.size || "사이즈 미입력"} · {i.condition}급 · {i.id}</p>
               <div className="inventory-card-meta"><span>매입 {won(totalCost(i))}</span><span>{i.acquiredDate ? `${days(i.acquiredDate, completed ? i.saleDate || undefined : undefined)}일 보유` : "보유기간 확인"}</span><span>{i.acquiredDate || "입고일 미입력"} 입고</span><Badge text={i.inventoryStatus} />{completed && <span>판매일 {i.saleDate || "확인 필요"}</span>}</div>
               <MarketplaceRegistration item={i} />
@@ -1105,7 +1106,7 @@ export default function Home() {
         <table className="inventory-text-table">
           <thead><tr><th>입고일</th>{inventoryFilter === "판매완료" && <th>판매완료일</th>}<th>상품</th><th>상품코드</th><th>사이즈</th><th>매입가</th><th>{inventoryFilter === "판매완료" ? "실판매가" : "예상판매가"}</th>{inventoryFilter === "판매완료" && <th>실마진</th>}<th>보유기간</th><th>상태</th><th>번개장터 등록</th><th></th></tr></thead>
           <tbody>{rows.map(i => { const completed = i.inventoryStatus === "판매완료"; const margin = profit(i); return <tr key={i.id} onClick={() => setEditing({ ...makeDraft(i)})}>
-            <td>{i.acquiredDate || "-"}</td>{inventoryFilter === "판매완료" && <td>{i.saleDate || "확인 필요"}</td>}<td className="product-cell"><b>{i.brand}</b><span>{i.name}</span></td><td className="code-cell">{i.id}</td><td>{i.size || "-"}</td><td>{won(totalCost(i))}</td><td className="money-strong">{completed ? (i.actualPrice > 0 ? won(i.actualPrice) : "확인 필요") : (i.expectedPrice > 0 ? won(i.expectedPrice) : "미입력")}</td>{inventoryFilter === "판매완료" && <td className={margin < 0 ? "money-loss" : "money-profit"}>{i.actualPrice > 0 && totalCost(i)>0 ? won(margin) : "확인 필요"}</td>}<td>{i.acquiredDate ? `${days(i.acquiredDate, i.inventoryStatus === "판매완료" ? i.saleDate || undefined : undefined)}일` : "-"}</td><td><Badge text={i.inventoryStatus} /></td><td><MarketplaceRegistration item={i} /></td><td onClick={e => e.stopPropagation()}><button className="text-row-more" onClick={() => completed ? setSaleEditing({ ...makeDraft(i)}) : setEditing({ ...makeDraft(i)})}>보기</button></td>
+            <td>{i.acquiredDate || "-"}</td>{inventoryFilter === "판매완료" && <td>{i.saleDate || "확인 필요"}</td>}<td className="product-cell"><b>{i.brand}</b><span>{displayName(i)}</span></td><td className="code-cell">{i.id}</td><td>{i.size || "-"}</td><td>{won(totalCost(i))}</td><td className="money-strong">{completed ? (i.actualPrice > 0 ? won(i.actualPrice) : "확인 필요") : (i.expectedPrice > 0 ? won(i.expectedPrice) : "미입력")}</td>{inventoryFilter === "판매완료" && <td className={margin < 0 ? "money-loss" : "money-profit"}>{i.actualPrice > 0 && totalCost(i)>0 ? won(margin) : "확인 필요"}</td>}<td>{i.acquiredDate ? `${days(i.acquiredDate, i.inventoryStatus === "판매완료" ? i.saleDate || undefined : undefined)}일` : "-"}</td><td><Badge text={i.inventoryStatus} /></td><td><MarketplaceRegistration item={i} /></td><td onClick={e => e.stopPropagation()}><button className="text-row-more" onClick={() => completed ? setSaleEditing({ ...makeDraft(i)}) : setEditing({ ...makeDraft(i)})}>보기</button></td>
           </tr>})}</tbody>
         </table>
         {!rows.length && <div className="inventory-empty"><b>조건에 맞는 상품이 없어요.</b><span>검색어나 옵션을 초기화해 보세요.</span><button onClick={() => { setSearch(""); setInventoryFilter("전체"); resetOptions(); }}>전체 상품 보기</button></div>}
@@ -1137,7 +1138,7 @@ export default function Home() {
           {rows.map(i => <article key={i.id} className={!i.attachments.length ? "missing" : ""}>
             <div className="evidence-item">
               <span className="evidence-thumb">{i.productPhotos?.[0]?.url || i.productPhotos?.[0]?.data || i.photoUrl ? <img src={i.productPhotos?.[0]?.url || i.productPhotos?.[0]?.data || i.photoUrl} alt="" /> : (i.brand.slice(0, 1) || "?")}</span>
-              <span><b>{i.brand} {i.name}</b><small>{i.id} · {i.acquiredDate || "매입일 미입력"} · {i.purchaseSource || "매입처 미입력"}</small></span>
+              <span><b>{fullName(i)}</b><small>{i.id} · {i.acquiredDate || "매입일 미입력"} · {i.purchaseSource || "매입처 미입력"}</small></span>
             </div>
             <div className="evidence-files">
               {i.attachments.length ? i.attachments.map((a, index) => <a key={`${a.name}-${index}`} href={a.url || a.data} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>{a.name}</a>) : <span>첨부된 증빙이 없어요.</span>}
@@ -1248,7 +1249,7 @@ export default function Home() {
   const renderSeason = () => (
     <section className="card"><div className="toolbar"><div><p className="eyebrow">SEASONAL INVENTORY</p><h2>계절 재고 관리</h2></div><p className="muted">여름에 산 겨울 상품은 판매 피크 전까지 정상 선매입으로 봅니다.</p></div>
       <div className="season-legend"><span><i className="dot prep" /> 정상 선매입</span><span><i className="dot peak" /> 판매 피크</span><span><i className="dot cut" /> 인하 검토</span><span><i className="dot carry" /> 다음 시즌 이월</span></div>
-      <div className="season-list">{recentItems.filter(i => active.some(a => a.id === i.id)).map(i => <article key={i.id}><div><b>{i.brand} {i.name}</b><span>{i.acquiredDate || "입고일 확인 필요"} 매입 · {i.acquiredDate ? `${days(i.acquiredDate)}일 보유` : "보유일 확인 필요"}</span></div><div className="months"><small>피크</small><b>{i.peakFrom}월 → {i.peakTo}월</b><small>철수 {i.exitMonth}월</small></div><Badge text={seasonStage(i)} /><strong>{won(totalCost(i))}</strong></article>)}</div>
+      <div className="season-list">{recentItems.filter(i => active.some(a => a.id === i.id)).map(i => <article key={i.id}><div><b>{fullName(i)}</b><span>{i.acquiredDate || "입고일 확인 필요"} 매입 · {i.acquiredDate ? `${days(i.acquiredDate)}일 보유` : "보유일 확인 필요"}</span></div><div className="months"><small>피크</small><b>{i.peakFrom}월 → {i.peakTo}월</b><small>철수 {i.exitMonth}월</small></div><Badge text={seasonStage(i)} /><strong>{won(totalCost(i))}</strong></article>)}</div>
     </section>
   );
 
@@ -1355,7 +1356,7 @@ export default function Home() {
       <section className="card main-card monthly-sales-list">
         <div className="section-title"><div><h3>{salesMonth.slice(5)}월 판매내역</h3><p>{selectedSales.length}건의 판매 기록</p></div>{selectedSales.some(i => i.settlementStatus === "정산대기") && <button onClick={() => { const ids = new Set(selectedSales.filter(i => i.settlementStatus === "정산대기").map(i => i.id)); update(s => ({ ...s, items: s.items.map(i => ids.has(i.id) ? { ...i, settlementStatus: "정산완료" } : i) }), `정산대기 ${ids.size}건 일괄 완료`); note(`${ids.size}건을 정산완료로 처리했어요.`); }}>선택 월 정산대기 완료 →</button>}</div>
         <div className="table-wrap"><table><thead><tr><th>상품</th><th>판매일</th><th>판매가</th><th>수수료·배송비</th><th>순이익</th><th>정산</th><th></th></tr></thead><tbody>
-          {[...selectedSales].sort((a, b) => (b.saleDate || "").localeCompare(a.saleDate || "")).map(i => <tr key={i.id}><td><b>{i.brand} {i.name}</b><small>{i.size || "-"} · 원가 {won(totalCost(i))}</small></td><td>{i.saleDate}</td><td>{won(revenue(i))}</td><td>{won(i.fee + i.shipping + (i.returnShipping || 0))}</td><td className={profit(i) >= 0 ? "positive" : "negative"}><b>{totalCost(i)>0 ? won(profit(i)) : "원가 확인 필요"}</b></td><td><Badge text={i.settlementStatus} /></td><td><button className="text-button" onClick={() => setSaleEditing({ ...makeDraft(i)})}>판매정보</button></td></tr>)}
+          {[...selectedSales].sort((a, b) => (b.saleDate || "").localeCompare(a.saleDate || "")).map(i => <tr key={i.id}><td><b>{fullName(i)}</b><small>{i.size || "-"} · 원가 {won(totalCost(i))}</small></td><td>{i.saleDate}</td><td>{won(revenue(i))}</td><td>{won(i.fee + i.shipping + (i.returnShipping || 0))}</td><td className={profit(i) >= 0 ? "positive" : "negative"}><b>{totalCost(i)>0 ? won(profit(i)) : "원가 확인 필요"}</b></td><td><Badge text={i.settlementStatus} /></td><td><button className="text-button" onClick={() => setSaleEditing({ ...makeDraft(i)})}>판매정보</button></td></tr>)}
           {!selectedSales.length && <tr><td colSpan={7} className="empty-month">이 달의 판매완료 기록이 없어요.</td></tr>}
         </tbody></table></div>
       </section>
@@ -1471,12 +1472,12 @@ export default function Home() {
         <div className="drawer-head"><div><p className="eyebrow">BUNDLE COST</p><h2>묶음 매입 원가 배분</h2></div><button onClick={() => setAllocation({ ...allocation, open: false })}>×</button></div>
         <div className="allocation-body"><p className="muted">같이 산 상품을 고르고 실제 총 결제액을 입력하면 상품별 매입가로 나눕니다.</p>
           <div className="form-grid"><Field label="총 상품 매입금액" value={allocation.total} type="number" suffix="원" onChange={v => setAllocation({ ...allocation, total: Number(v) })} /><Select label="배분 방식" value={allocation.method} options={["예상판매가 비율", "균등 배분"]} onChange={v => setAllocation({ ...allocation, method: v })} /></div>
-          <div className="allocation-list">{active.map(i => <label key={i.id}><input type="checkbox" checked={allocation.ids.includes(i.id)} onChange={e => setAllocation({ ...allocation, ids: e.target.checked ? [...allocation.ids, i.id] : allocation.ids.filter(id => id !== i.id) })} /><span><b>{i.brand} {i.name}</b><small>{i.id} · 예상 {won(i.expectedPrice)}</small></span></label>)}</div>
+          <div className="allocation-list">{active.map(i => <label key={i.id}><input type="checkbox" checked={allocation.ids.includes(i.id)} onChange={e => setAllocation({ ...allocation, ids: e.target.checked ? [...allocation.ids, i.id] : allocation.ids.filter(id => id !== i.id) })} /><span><b>{fullName(i)}</b><small>{i.id} · 예상 {won(i.expectedPrice)}</small></span></label>)}</div>
           <div className="allocation-preview">{allocation.ids.map(id => {
             const item = state.items.find(i => i.id === id)!;
             const chosen = state.items.filter(i => allocation.ids.includes(i.id));
             const weight = allocation.method === "균등 배분" ? 1 / Math.max(1, chosen.length) : item.expectedPrice / Math.max(1, chosen.reduce((s, i) => s + i.expectedPrice, 0));
-            return <div key={id}><span>{item.brand} {item.name}</span><b>{won(Math.round(allocation.total * weight))}</b></div>;
+            return <div key={id}><span>{fullName(item)}</span><b>{won(Math.round(allocation.total * weight))}</b></div>;
           })}</div>
         </div>
         <div className="drawer-actions"><button className="secondary" onClick={() => setAllocation({ ...allocation, open: false })}>취소</button><button className="primary" onClick={() => {
@@ -1510,9 +1511,11 @@ function SectionTitle({ title, action, onClick }: { title: string; action?: stri
 function MarketplaceRegistration({ item }: { item: Item }) {
   const links = marketplaceLinks(item);
   const status = registrationState(item);
-  return <div className={`marketplace-registration ${status === "등록완료" ? "registered" : status === "미등록" ? "unlisted" : "unchecked"}`} onClick={e => e.stopPropagation()}>
-    <span className="marketplace-registration-label">{status === "등록완료" ? "등록완료 · 번개장터" : status === "미등록" ? "미등록 · 번개장터" : "번개장터 · 등록 확인 필요"}</span>
-    {links.map(link => <a key={link.url} href={link.url} target="_blank" rel="noreferrer" title={`${link.shop || "상점 확인 필요"}${link.checkedAt ? ` · 확인일 ${link.checkedAt.slice(0,10)}` : ""}`}><span>{link.shop || "상점 확인 필요"}</span>{link.observedStatus && <small>{link.observedStatus}</small>}</a>)}
+  const tone = status === "등록완료" ? "registered" : status === "미등록" ? "unlisted" : "unchecked";
+  const label = status === "등록완료" ? "등록완료" : status === "미등록" ? "미등록" : "등록 확인 필요";
+  return <div className={`marketplace-registration ${tone}`} onClick={e => e.stopPropagation()}>
+    <span className="marketplace-registration-label">{label}</span>
+    {links.map(link => <a key={link.url} href={link.url} target="_blank" rel="noreferrer" title={`${link.shop || "상점 확인 필요"}${link.checkedAt ? ` · 확인일 ${link.checkedAt.slice(0,10)}` : ""}`}><span>{link.shop || "상점 확인 필요"}</span>{link.observedStatus && <small>· {link.observedStatus}</small>}</a>)}
     {status === "등록완료" && !links.length && <small>상점·판매글 확인 필요</small>}
   </div>;
 }
@@ -1587,7 +1590,7 @@ function SaleDrawer({ item, setItem, onClose, onSave, onUndo, onReturn }: { item
   const estimatedProfit = item.actualPrice - totalCost(item) - item.fee - item.shipping;
   return <div className="drawer-backdrop center-modal"><form className="sale-modal" onSubmit={onSave}>
     <div className="sale-modal-head"><div><span className="sale-check">✓</span><div><p className="eyebrow">{item.inventoryStatus === "판매완료" ? "SALE RECORD" : "COMPLETE SALE"}</p><h2>{item.inventoryStatus === "판매완료" ? "판매정보" : "판매완료 처리"}</h2></div></div><button type="button" aria-label="닫기" onClick={onClose}>×</button></div>
-    <div className="sale-product"><div className="product-dot">{item.brand.slice(0, 1) || "?"}</div><div><b>{item.brand} {item.name}</b><span>{item.size || "사이즈 미입력"} · 원가 {won(totalCost(item))}</span></div></div>
+    <div className="sale-product"><div className="product-dot">{item.brand.slice(0, 1) || "?"}</div><div><b>{fullName(item)}</b><span>{item.size || "사이즈 미입력"} · 원가 {won(totalCost(item))}</span></div></div>
     <div className="sale-fields form-grid"><Field label="판매일 *" value={item.saleDate} type="date" onChange={v => set("saleDate", v)} /><Field label="실판매가 *" value={item.actualPrice} type="number" suffix="원" onChange={v => set("actualPrice", Number(v))} /><Select label="판매 채널" value={item.saleChannel} options={["번개장터", "당근", "후르츠", "패밀리", "KREAM", "기타"]} onChange={v => set("saleChannel", v)} /><Select label="정산 상태" value={item.settlementStatus === "해당없음" ? "정산대기" : item.settlementStatus} options={["정산대기", "정산완료", "확인필요"]} onChange={v => set("settlementStatus", v)} /><Field label="플랫폼 수수료" value={item.fee} type="number" suffix="원" onChange={v => set("fee", Number(v))} /><Field label="판매 배송비" value={item.shipping} type="number" suffix="원" onChange={v => set("shipping", Number(v))} /></div>
     <div className="sale-result"><span>예상 순이익</span><strong className={estimatedProfit >= 0 ? "positive" : ""}>{item.actualPrice > 0 ? won(estimatedProfit) : "-"}</strong><small>판매가 − 매입원가 − 수수료 − 배송비</small></div>
     <div className="sale-modal-actions split-actions">{item.inventoryStatus === "판매완료" && <div><button type="button" className="danger-link" onClick={onUndo}>판매 취소·재고 복귀</button><button type="button" className="return-link" onClick={onReturn}>반품 처리</button></div>}<div><button type="button" className="secondary" onClick={onClose}>닫기</button><button type="submit" className="sale-confirm">{item.inventoryStatus === "판매완료" ? "판매정보 저장" : "판매완료 확정"}</button></div></div>
@@ -1598,7 +1601,7 @@ function ReturnDrawer({ item, setItem, onClose, onSave }: { item: Item; setItem:
   const set = (key: keyof Item, value: any) => setItem({ ...item, [key]: value });
   return <div className="drawer-backdrop center-modal"><form className="sale-modal" onSubmit={onSave}>
     <div className="sale-modal-head"><div><span className="sale-check return">↩</span><div><p className="eyebrow">RETURN</p><h2>반품·거래취소</h2></div></div><button type="button" onClick={onClose}>×</button></div>
-    <div className="sale-product"><div className="product-dot">{item.brand.slice(0, 1) || "?"}</div><div><b>{item.brand} {item.name}</b><span>판매가 {won(item.actualPrice)} · 현재 순이익 {won(profit(item))}</span></div></div>
+    <div className="sale-product"><div className="product-dot">{item.brand.slice(0, 1) || "?"}</div><div><b>{fullName(item)}</b><span>판매가 {won(item.actualPrice)} · 현재 순이익 {won(profit(item))}</span></div></div>
     <div className="sale-fields form-grid"><Field label="반품일 *" value={item.returnDate} type="date" onChange={v => set("returnDate", v)} /><Select label="상품 처리 *" value={item.returnDisposition} options={["재고 복귀", "폐기·보관함"]} onChange={v => set("returnDisposition", v)} /><Field label="환불액" value={item.refundAmount} type="number" suffix="원" onChange={v => set("refundAmount", Number(v))} /><Field label="왕복·추가 배송비" value={item.returnShipping} type="number" suffix="원" onChange={v => set("returnShipping", Number(v))} /><label className="field wide"><span>반품 사유</span><textarea value={item.returnReason} onChange={e => set("returnReason", e.target.value)} /></label></div>
     <div className="sale-result"><span>반품 반영 후 매출</span><strong>{won(revenue(item))}</strong><small>환불액과 추가 배송비를 매출·순이익에서 자동 재계산합니다.</small></div>
     <div className="sale-modal-actions"><button type="button" className="secondary" onClick={onClose}>취소</button><button type="submit" className="sale-confirm">반품 확정</button></div>
@@ -1609,7 +1612,7 @@ function PublishDrawer({ item, setItem, onClose, onSave }: { item: Item; setItem
   const set = (key: keyof Item, value: any) => setItem({ ...item, [key]: value });
   return <div className="drawer-backdrop center-modal"><form className="sale-modal" onSubmit={onSave}>
     <div className="sale-modal-head"><div><span className="sale-check publish">↗</span><div><p className="eyebrow">BUNJANG</p><h2>게시 완료 기록</h2></div></div><button type="button" onClick={onClose}>×</button></div>
-    <div className="sale-product"><div className="product-dot">{item.brand.slice(0, 1) || "?"}</div><div><b>{item.brand} {item.name}</b><span>번장 등록 정보를 재고와 연결해요.</span></div></div>
+    <div className="sale-product"><div className="product-dot">{item.brand.slice(0, 1) || "?"}</div><div><b>{fullName(item)}</b><span>번장 등록 정보를 재고와 연결해요.</span></div></div>
     <div className="sale-fields form-grid"><Field label="게시일 *" value={item.listingPublishedDate} type="date" onChange={v => set("listingPublishedDate", v)} /><Field label="게시 판매가격" value={item.listingPublishedPrice} type="number" suffix="원" onChange={v => set("listingPublishedPrice", Number(v))} /><label className="field wide"><span>게시 URL *</span><input type="url" placeholder="https://m.bunjang.co.kr/products/..." value={item.listingUrl} onChange={e => set("listingUrl", e.target.value)} /></label></div>
     <div className="sale-modal-actions"><button type="button" className="secondary" onClick={onClose}>취소</button><button type="submit" className="sale-confirm">게시정보 저장</button></div>
   </form></div>;

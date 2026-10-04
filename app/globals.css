@@ -1273,3 +1273,12 @@ html,body,#root{min-height:100%;max-width:100%}.content-shell,.content,.card{min
   .inventory-card-actions > button { flex:1; padding:8px 5px; }
   .inventory-card-actions .row-more { flex:none; }
 }
+
+/* 브랜드/상품명 분리 표시 · 번장 등록 한 칸 · 장기재고 구간 */
+.inventory-card-info h3 .brand-line { display:block; margin-bottom:2px; color:#8b95a1; font-size:12px; font-weight:650; line-height:1.3; }
+.marketplace-registration { gap:3px; }
+.marketplace-registration a { gap:2px 5px; text-decoration:none; }
+.marketplace-registration a > span { text-decoration:underline; text-underline-offset:3px; }
+.age-grid { grid-template-columns:repeat(5,minmax(0,1fr)); }
+.age-grid button > span { font-size:13px; }
+@media(max-width:760px){ .age-grid { grid-template-columns:repeat(2,1fr); } }
