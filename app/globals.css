@@ -1282,3 +1282,8 @@ html,body,#root{min-height:100%;max-width:100%}.content-shell,.content,.card{min
 .age-grid { grid-template-columns:repeat(5,minmax(0,1fr)); }
 .age-grid button > span { font-size:13px; }
 @media(max-width:760px){ .age-grid { grid-template-columns:repeat(2,1fr); } }
+
+/* 재고 표: 브랜드/상품명을 따로 한 줄씩 */
+.inventory-text-table{min-width:1080px}
+.inventory-text-table .brand-cell{font-weight:800;color:#333d4b;min-width:84px}
+.inventory-text-table .name-cell{font-weight:700;color:#4e5968;max-width:340px;overflow:hidden;text-overflow:ellipsis}
