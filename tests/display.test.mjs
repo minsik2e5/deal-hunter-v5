@@ -7,6 +7,10 @@ test('브랜드가 상품명 앞에 반복되면 화면에서만 뺀다', () => 
   assert.equal(displayName({ brand: 'STU', name: 'STU 스웨이드 레더 라이더 자켓' }), '스웨이드 레더 라이더 자켓');
   assert.equal(displayName({ brand: '보테가베네타', name: '보테가 베네타 퍼들 부츠' }), '퍼들 부츠');
 });
+test('영어 브랜드가 한글 발음으로 반복돼도 뺀다', () => {
+  assert.equal(displayName({ brand: 'STU', name: '스투 플레어 울 슬랙스' }), '플레어 울 슬랙스');
+  assert.equal(displayName({ brand: 'STU', name: '스투엑스행크 데님' }), '스투엑스행크 데님');
+});
 test('확실하지 않으면 원본 그대로 둔다', () => {
   assert.equal(displayName({ brand: '세터', name: '세터리 자켓' }), '세터리 자켓');
   assert.equal(displayName({ brand: '세터', name: '키링' }), '키링');
