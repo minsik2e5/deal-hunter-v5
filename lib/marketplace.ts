@@ -1,6 +1,6 @@
 export type MarketplaceLink = {
   platform: string; shop: string; url: string; productId?: string; title?: string;
-  observedStatus?: string; checkedAt?: string;
+  observedStatus?: string; checkedAt?: string; displayPrice?: string;
 };
 type ListingRecord = {
   marketplaceLinks?: MarketplaceLink[]; listingUrl?: string; listingStatus?: string;

@@ -1287,3 +1287,4 @@ html,body,#root{min-height:100%;max-width:100%}.content-shell,.content,.card{min
 .inventory-text-table{min-width:1080px}
 .inventory-text-table .brand-cell{font-weight:800;color:#333d4b;min-width:84px}
 .inventory-text-table .name-cell{font-weight:700;color:#4e5968;max-width:340px;overflow:hidden;text-overflow:ellipsis}
+.inventory-text-table .money-muted{color:#b0b8c1}
