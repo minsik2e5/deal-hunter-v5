@@ -10,7 +10,8 @@
     "build": "node scripts/build.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/worker.test.mjs tests/backend.test.mjs tests/display.test.mjs"
+    "test": "node --experimental-strip-types --test tests/worker.test.mjs tests/backend.test.mjs tests/display.test.mjs",
+    "preview:live": "npm run build && node scripts/live-preview.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
