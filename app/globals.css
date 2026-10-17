@@ -1288,3 +1288,32 @@ html,body,#root{min-height:100%;max-width:100%}.content-shell,.content,.card{min
 .inventory-text-table .brand-cell{font-weight:800;color:#333d4b;min-width:84px}
 .inventory-text-table .name-cell{font-weight:700;color:#4e5968;max-width:340px;overflow:hidden;text-overflow:ellipsis}
 .inventory-text-table .money-muted{color:#b0b8c1}
+
+/* 번개톡 (번장 멀티챗 연결) */
+.talk{position:relative}
+.talk-btn,.talk-off{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 11px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:11px;font-weight:700;color:#4e5968;cursor:pointer}
+.talk-btn:hover,.talk-off:hover{background:#f7f9fc}
+.talk-btn.has{border-color:#f04452;box-shadow:0 0 0 2px #f0445222}
+.talk-off{color:#a3abb5;font-weight:600}
+.talk-acc{display:inline-flex;align-items:center;gap:4px;color:#a3abb5;font-variant-numeric:tabular-nums}
+.talk-acc.on{color:#f04452}
+.talk-acc i,.talk-row i{width:8px;height:8px;border-radius:50%;flex:none}
+.talk-none{color:#a3abb5;font-weight:600}
+.talk-pop{position:absolute;right:0;top:calc(100% + 8px);z-index:40;width:340px;max-height:70vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 36px #13151a26;padding:8px}
+.talk-pop section{padding:8px;border-bottom:1px solid var(--line)}
+.talk-pop section:last-of-type{border-bottom:0}
+.talk-row{display:flex;align-items:center;gap:8px;font-size:13px}
+.talk-row strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.talk-row em,.talk-chat em{font-style:normal;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#f04452;color:#fff;font-size:11px;font-weight:700;display:inline-grid;place-items:center}
+.talk-row small{color:#a3abb5;font-size:11px}
+.talk-row button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.talk-row button:hover{background:#f2f4f6}
+.talk-hint{margin:6px 0 0 16px;color:#a3abb5;font-size:11px}
+.talk-chat{display:flex;align-items:center;gap:8px;width:100%;margin-top:4px;padding:7px 8px 7px 16px;border:0;border-radius:8px;background:none;text-align:left;cursor:pointer}
+.talk-chat:hover{background:#f7f9fc}
+.talk-chat span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.talk-chat b{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.talk-chat small{color:#6b7684;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.talk-open-all{display:block;width:100%;margin-top:6px;padding:9px;border:0;border-radius:9px;background:#f2f4f6;font-size:12px;font-weight:700;cursor:pointer}
+.talk-open-all:hover{background:#e5e8eb}
+@media(max-width:760px){.talk,.talk-off{display:none}}

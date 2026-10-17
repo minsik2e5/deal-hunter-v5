@@ -9,6 +9,7 @@ import { apiFetch } from "../lib/cloud";
 import { useLedgerSync } from "../lib/use-ledger-sync";
 import { validateState, serializeState, validDate, businessDate } from "../lib/state";
 import { marketplaceLinks, registrationState, type MarketplaceLink } from "../lib/marketplace";
+import { BunjangTalk } from "../lib/BunjangTalk";
 import { displayName, fullName } from "../lib/display";
 
 type View = "home" | "inventory" | "evidence" | "products" | "buy" | "money" | "season" | "queue" | "analytics" | "market" | "settings" | "pricing";
@@ -1437,7 +1438,7 @@ export default function Home() {
         <div className="side-foot"><span className={`live-dot ${sync.conflict ? "conflict" : ""}`} /> {sync.status}<small>{sync.updatedAt ? new Date(sync.updatedAt).toLocaleTimeString("ko-KR") : "서버 + 비상 로컬 저장"}</small></div>
       </aside>
       <div className="content-shell">
-        <header><div><p>{viewLabels[view]}</p><small>{today()}</small></div><div className="header-actions"><span className={`save-status ${sync.conflict || loadIssue === "connection" ? "conflict" : ""}`}>{isSaving ? "저장 중 · 창을 닫지 마세요" : sync.status}</span><button className="avatar">DY</button></div></header>
+        <header><div><p>{viewLabels[view]}</p><small>{today()}</small></div><div className="header-actions"><BunjangTalk /><span className={`save-status ${sync.conflict || loadIssue === "connection" ? "conflict" : ""}`}>{isSaving ? "저장 중 · 창을 닫지 마세요" : sync.status}</span><button className="avatar">DY</button></div></header>
         <div className="content">
           {loadIssue && <div className={`load-banner ${loadIssue}`}><div><b>{loadIssue === "connection" ? "서버에 연결하지 못했어요" : "서버에 저장된 데이터가 아직 없어요"}</b><span>{loadIssue === "connection" ? "마지막 정상 데이터를 임시로 표시하고 있습니다." : "현재 표시된 기준 데이터를 처음 저장할 수 있습니다."}</span></div>{loadIssue === "connection" && <button onClick={() => setLoadNonce(n => n + 1)}>다시 시도</button>}</div>}
           {view === "home" && renderHome()}{view === "inventory" && renderInventory()}{view === "evidence" && renderEvidence()}{view === "products" && renderProducts()}{view === "buy" && renderBuy()}
