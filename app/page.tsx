@@ -9,10 +9,10 @@ import { apiFetch } from "../lib/cloud";
 import { useLedgerSync } from "../lib/use-ledger-sync";
 import { validateState, serializeState, validDate, businessDate } from "../lib/state";
 import { marketplaceLinks, registrationState, type MarketplaceLink } from "../lib/marketplace";
-import { BunjangTalk } from "../lib/BunjangTalk";
+import { BunjangTalk, BunjangTalkPage } from "../lib/BunjangTalk";
 import { displayName, fullName } from "../lib/display";
 
-type View = "home" | "inventory" | "evidence" | "products" | "buy" | "money" | "season" | "queue" | "analytics" | "market" | "settings" | "pricing";
+type View = "home" | "talk" | "inventory" | "evidence" | "products" | "buy" | "money" | "season" | "queue" | "analytics" | "market" | "settings" | "pricing";
 type Attachment = { name: string; type: string; size: number; data?: string; key?: string; url?: string; kind?: "reference"; sourceUrl?: string; sourceImageUrl?: string };
 type Listing = {
   title: string; categoryId: string; apparelSize: string; bottomSize: string;
@@ -221,6 +221,7 @@ function migrate(raw: any): State {
 
 const nav: { id: View; label: string; icon: string }[] = [
   { id: "home", label: "홈", icon: "⌂" },
+  { id: "talk", label: "번개톡", icon: "✉" },
   { id: "inventory", label: "재고관리", icon: "▦" },
   { id: "queue", label: "번장등록", icon: "↗" },
   { id: "analytics", label: "매출관리", icon: "▥" },
@@ -230,7 +231,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: "settings", label: "더보기", icon: "•••" },
 ];
 const viewLabels: Record<View, string> = {
-  pricing: "가격·장기재고", home: "홈", inventory: "재고관리", queue: "번장등록", analytics: "매출관리",
+  pricing: "가격·장기재고", home: "홈", talk: "번개톡", inventory: "재고관리", queue: "번장등록", analytics: "매출관리",
   money: "자금·대출", evidence: "증빙", settings: "더보기", products: "상품 라이브러리",
   buy: "매입 분석", season: "계절 재고", market: "시세 데이터",
 };
@@ -1438,10 +1439,10 @@ export default function Home() {
         <div className="side-foot"><span className={`live-dot ${sync.conflict ? "conflict" : ""}`} /> {sync.status}<small>{sync.updatedAt ? new Date(sync.updatedAt).toLocaleTimeString("ko-KR") : "서버 + 비상 로컬 저장"}</small></div>
       </aside>
       <div className="content-shell">
-        <header><div><p>{viewLabels[view]}</p><small>{today()}</small></div><div className="header-actions"><BunjangTalk /><span className={`save-status ${sync.conflict || loadIssue === "connection" ? "conflict" : ""}`}>{isSaving ? "저장 중 · 창을 닫지 마세요" : sync.status}</span><button className="avatar">DY</button></div></header>
+        <header><div><p>{viewLabels[view]}</p><small>{today()}</small></div><div className="header-actions"><BunjangTalk onOpenPage={() => setView("talk")} /><span className={`save-status ${sync.conflict || loadIssue === "connection" ? "conflict" : ""}`}>{isSaving ? "저장 중 · 창을 닫지 마세요" : sync.status}</span><button className="avatar">DY</button></div></header>
         <div className="content">
           {loadIssue && <div className={`load-banner ${loadIssue}`}><div><b>{loadIssue === "connection" ? "서버에 연결하지 못했어요" : "서버에 저장된 데이터가 아직 없어요"}</b><span>{loadIssue === "connection" ? "마지막 정상 데이터를 임시로 표시하고 있습니다." : "현재 표시된 기준 데이터를 처음 저장할 수 있습니다."}</span></div>{loadIssue === "connection" && <button onClick={() => setLoadNonce(n => n + 1)}>다시 시도</button>}</div>}
-          {view === "home" && renderHome()}{view === "inventory" && renderInventory()}{view === "evidence" && renderEvidence()}{view === "products" && renderProducts()}{view === "buy" && renderBuy()}
+          {view === "home" && renderHome()}{view === "talk" && <BunjangTalkPage />}{view === "inventory" && renderInventory()}{view === "evidence" && renderEvidence()}{view === "products" && renderProducts()}{view === "buy" && renderBuy()}
           {view === "money" && renderMoney()}{view === "season" && renderSeason()}{view === "queue" && renderQueue()}
           {view === "pricing" && <Pricing items={state.items} feeRate={state.settings.feeRate} shipping={state.settings.defaultShipping} onApply={(drafts,ids) => {
             if (import.meta.env.VITE_ENABLE_PRICE_CHANGES !== "true") return note("가격 적용은 보류 중입니다.");

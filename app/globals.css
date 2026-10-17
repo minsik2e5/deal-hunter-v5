@@ -1314,6 +1314,31 @@ html,body,#root{min-height:100%;max-width:100%}.content-shell,.content,.card{min
 .talk-chat span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .talk-chat b{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .talk-chat small{color:#6b7684;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.talk-open-all{display:block;width:100%;margin-top:6px;padding:9px;border:0;border-radius:9px;background:#f2f4f6;font-size:12px;font-weight:700;cursor:pointer}
-.talk-open-all:hover{background:#e5e8eb}
+.talk-pop-actions{display:flex;gap:6px;margin-top:6px}
+.talk-pop-actions button{flex:1;padding:9px;border:0;border-radius:9px;background:#f2f4f6;font-size:12px;font-weight:700;cursor:pointer}
+.talk-pop-actions button:hover{background:#e5e8eb}
+/* 번개톡 페이지 */
+.talk-page .simple-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.talk-page .simple-head>div:first-child{flex:1 1 auto;min-width:0}
+.talk-page-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.talk-page-actions>*{white-space:nowrap;flex-shrink:0}
+.talk-web{display:inline-flex;align-items:center;height:38px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:#4e5968;font-size:13px;font-weight:700;text-decoration:none}
+.talk-web:hover{background:#f7f9fc}
+.talk-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+.talk-kpis>div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.talk-kpis span{color:#8b95a1;font-size:12px;font-weight:600}
+.talk-kpis b{font-size:22px;font-variant-numeric:tabular-nums}
+.talk-kpis .hot b{color:#f04452}
+.talk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
+.talk-card{border-top:4px solid #8b95a1;padding:14px}
+.talk-card .talk-row{font-size:15px;padding:2px 2px 8px}
+.talk-card .talk-chat{padding:9px 8px}
+.talk-card .talk-chat b{font-size:13px}
+.talk-card .talk-chat small{font-size:12px}
+.talk-quiet{margin:6px 2px;color:#a3abb5;font-size:12px}
+.talk-empty h2{margin:0 0 8px;font-size:18px}
+.talk-empty p{margin:6px 0;line-height:1.6}
+.talk-empty .ghost-btn{margin-top:10px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 14px;font-weight:700;cursor:pointer}
+.talk-updated{margin:14px 2px;color:#a3abb5;font-size:11px}
+@media(max-width:760px){.talk-kpis{grid-template-columns:1fr 1fr 1fr;gap:8px}.talk-kpis b{font-size:18px}.talk-page-actions{width:100%}.talk-web{flex:1;justify-content:center}}
 @media(max-width:760px){.talk,.talk-off{display:none}}
