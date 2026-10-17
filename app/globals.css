@@ -1339,6 +1339,7 @@ html,body,#root{min-height:100%;max-width:100%}.content-shell,.content,.card{min
 .talk-empty h2{margin:0 0 8px;font-size:18px}
 .talk-empty p{margin:6px 0;line-height:1.6}
 .talk-empty .ghost-btn{margin-top:10px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 14px;font-weight:700;cursor:pointer}
+.talk-download{display:inline-flex;align-items:center;justify-content:center;margin:8px 0 4px;padding:0 16px;height:40px;border-radius:10px;text-decoration:none;font-weight:700}
 .talk-updated{margin:14px 2px;color:#a3abb5;font-size:11px}
 @media(max-width:760px){.talk-kpis{grid-template-columns:1fr 1fr 1fr;gap:8px}.talk-kpis b{font-size:18px}.talk-page-actions{width:100%}.talk-web{flex:1;justify-content:center}}
 @media(max-width:760px){.talk,.talk-off{display:none}}

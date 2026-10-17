@@ -3,6 +3,12 @@ import { serializeState } from './state';
 const endpoint = import.meta.env.VITE_DEAL_HUNTER_API_URL || '/api/cloud';
 let code = '';
 export function setAccessCode(value:string) { code = value; }
+// 접속 코드마다 서버 작업공간(원장)이 다르다. 'main'은 기존 원장.
+let workspace = 'main';
+export function setWorkspace(value:string) { workspace = /^[a-z0-9][a-z0-9-]{0,31}$/.test(value) ? value : 'main'; }
+export function currentWorkspace() { return workspace; }
+// 브라우저 임시 저장 키: 'main'은 기존 키 그대로(기존 백업 유지), 다른 작업공간은 이름을 붙여 서로 섞이지 않게
+export function storageKey(base:string) { return workspace === 'main' ? base : base + '::' + workspace; }
 export function cloudConfigured() { return Boolean(endpoint); }
 export async function apiFetch(path:string, init:RequestInit = {}):Promise<Response> {
   if (!endpoint) return Response.json({error:'서버 주소가 설정되지 않았습니다.'},{status:503});
@@ -21,7 +27,7 @@ export async function hydrateFiles<T>(state:T):Promise<T> {
   const copy = JSON.parse(serializeState(state));
   const files = new Map<string,Record<string,unknown>[]>();
   for (const item of copy.items || []) for (const attachment of [...(item.attachments || []),...(item.productPhotos || [])]) {
-    if (attachment.key?.startsWith('main/')) files.set(attachment.key,[...(files.get(attachment.key)||[]),attachment]);
+    if (/^[a-z0-9][a-z0-9-]{0,31}\//i.test(attachment.key || '')) files.set(attachment.key,[...(files.get(attachment.key)||[]),attachment]);
   }
   const keys = [...files.keys()];
   for (let start=0;start<keys.length;start+=50) {

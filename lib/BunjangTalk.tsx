@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 // 채팅 발송·쿠키·세션 정보는 다루지 않는다.
 const BRIDGE = "http://127.0.0.1:47615";
 const TALK_WEB = "https://m.bunjang.co.kr/talk";
+// 번장 멀티챗 Windows 실행 파일 (설치 없이 실행, 항상 최신 버전)
+const DOWNLOAD_URL = "https://github.com/minsik2e5/bungae-multichat/releases/latest/download/BungaeMultiChat-portable.exe";
 
 type TalkChat = { name: string; text: string; n: number };
 type TalkAccount = { id: string; name: string; color: string; unread: number; muted: boolean; chatOpen: boolean; chats: TalkChat[] };
@@ -138,6 +140,7 @@ export function BunjangTalkPage() {
         <div><p className="eyebrow">BUNGAE TALK</p><h1>번개톡</h1><p>번장 멀티챗에 연결된 계정들의 안 읽은 채팅을 한곳에서 확인해요.</p></div>
         <div className="talk-page-actions">
           <a className="talk-web" href={TALK_WEB} target="_blank" rel="noreferrer">번장 톡 웹으로 열기</a>
+          <a className="talk-web" href={DOWNLOAD_URL} rel="noreferrer">번장 멀티챗 다운로드</a>
           {!offline && status && <button className="primary" onClick={() => focusAccount("")}>번장 멀티챗 열기</button>}
         </div>
       </div>
@@ -145,7 +148,9 @@ export function BunjangTalkPage() {
       {(offline || !status) ? (
         <section className="card talk-empty">
           <h2>{status === null && !offline ? "번장 멀티챗 연결 확인 중…" : "번장 멀티챗이 꺼져 있어요"}</h2>
-          <p>이 PC에서 바탕화면의 <b>Deal Hunter + 번개톡 시작</b>을 실행하면 계정별 안 읽은 채팅이 여기에 나와요.</p>
+          <p>이 PC에서 <b>번장 멀티챗</b>을 켜면 계정별 안 읽은 채팅이 여기에 나와요.</p>
+          <p>아직 없다면 받아서 바로 실행하세요. 설치 없이 켜지는 Windows 프로그램이에요. 처음 실행 때 "PC 보호" 경고가 뜨면 <b>추가 정보 → 실행</b>을 누르세요.</p>
+          <a className="primary talk-download" href={DOWNLOAD_URL} rel="noreferrer">번장 멀티챗 다운로드 (Windows)</a>
           <p className="muted">휴대폰이나 다른 PC에서는 멀티챗에 연결할 수 없어요. 위의 <b>번장 톡 웹으로 열기</b>로 그 기기에 로그인된 계정의 채팅을 열 수 있어요.</p>
           {offline && <button className="ghost-btn" onClick={() => poll()}>다시 연결</button>}
         </section>

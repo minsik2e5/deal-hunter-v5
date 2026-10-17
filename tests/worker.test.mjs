@@ -11,3 +11,27 @@ test('restore keeps a pre-restore snapshot, refuses missing versions and stale r
 test('D1 batch rollback preserves ledger when snapshot insert fails',async()=>{const {env,sqlite}=await environment();const original=state();await commit(env.DB,0,original);sqlite.exec("CREATE TRIGGER reject_snapshot BEFORE INSERT ON ledger_versions BEGIN SELECT RAISE(ABORT,'storage failure'); END;");await assert.rejects(commit(env.DB,1,{...original,items:[]}));assert.equal(sqlite.prepare('SELECT revision FROM ledger').get().revision,1);assert.deepEqual(JSON.parse(sqlite.prepare('SELECT state_json FROM ledger').get().state_json),original);});
 test('native cloud API refuses bad money, duplicate IDs and revision values',async()=>{const {env}=await environment();for(const body of [{expectedRevision:0,state:{...state(),items:[state().items[0],state().items[0]]}},{expectedRevision:0,state:{...state(),items:[{id:'x',purchasePrice:-1}]}},{expectedRevision:1.1,state:state()}])assert.equal((await worker.fetch(request('state','PUT',body),env)).status,400);assert.equal((await worker.fetch(request('state','PUT',{expectedRevision:0,state:state()}),env)).status,200);assert.equal((await worker.fetch(request('state','PUT',{expectedRevision:0,state:state()}),env)).status,409);});
 test('R2 photo bytes round-trip privately; forged links, expired links and DELETE are refused',async()=>{const {env}=await environment();const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4U0AAAAASUVORK5CYII=','base64');const form=new FormData();form.set('file',new File([png],'actual.png',{type:'image/png'}));const uploaded=await worker.fetch(new Request('https://unit.example/api/cloud?route=files',{method:'POST',headers:{'x-deal-code':'unit-code'},body:form}),env);assert.equal(uploaded.status,200);const data=await uploaded.json();const raw=await worker.fetch(new Request(data.url),env);assert.equal(raw.status,200);assert.deepEqual(Buffer.from(await raw.arrayBuffer()),png);const forged=new URL(data.url);forged.searchParams.set('sig','invalid');assert.equal((await worker.fetch(new Request(forged),env)).status,403);const expired=new URL(data.url);expired.searchParams.set('expires','1');assert.equal((await worker.fetch(new Request(expired),env)).status,403);assert.equal((await worker.fetch(request('files','DELETE'),env)).status,405);assert.equal((await worker.fetch(request('files/sign','POST',{keys:['other/photo']}),env)).status,400);});
+test('each access code opens its own workspace: separate ledgers, versions and photos',async()=>{
+ const {env,sqlite}=await environment();env.DEAL_HUNTER_WORKSPACES=`friend1:${await hash('friend-code')}, bad name:xyz, main:${await hash('steal-main')}`;
+ const who=async code=>(await (await worker.fetch(request('whoami','GET',null,code),env)).json()).workspace;
+ assert.equal(await who('unit-code'),'main');assert.equal(await who('friend-code'),'friend1');
+ assert.equal((await worker.fetch(request('state','GET',null,'steal-main'),env)).status,401); // 'main' cannot be redefined
+ assert.equal((await worker.fetch(request('state','PUT',{expectedRevision:0,state:state()}),env)).status,200);
+ assert.equal((await worker.fetch(request('state','GET',null,'friend-code'),env)).status,404); // friend starts empty
+ const mine={...state(),items:[{...state().items[0],id:'friend-item',name:'Friend'}]};
+ assert.equal((await worker.fetch(request('state','PUT',{expectedRevision:0,state:mine},'friend-code'),env)).status,200);
+ assert.equal((await worker.fetch(request('state','PUT',{expectedRevision:1,state:{...mine,items:[]}},'friend-code'),env)).status,200);
+ assert.equal((await (await worker.fetch(request('state'),env)).json()).state.items[0].name,'Original');
+ assert.equal((await (await worker.fetch(request('state','GET',null,'friend-code'),env)).json()).revision,2);
+ assert.equal((await (await worker.fetch(request('state/versions'),env)).json()).versions.length,0);
+ assert.equal((await (await worker.fetch(request('state/versions','GET',null,'friend-code'),env)).json()).versions.length,1);
+ assert.equal(sqlite.prepare("SELECT revision FROM ledger WHERE workspace='main'").get().revision,1);
+ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4U0AAAAASUVORK5CYII=','base64');
+ const upload=async code=>{const form=new FormData();form.set('file',new File([png],'p.png',{type:'image/png'}));return (await worker.fetch(new Request('https://unit.example/api/cloud?route=files',{method:'POST',headers:{'x-deal-code':code},body:form}),env)).json();};
+ const mainPhoto=await upload('unit-code'),friendPhoto=await upload('friend-code');
+ assert.match(mainPhoto.key,/^main\//);assert.match(friendPhoto.key,/^friend1\//);
+ assert.equal((await worker.fetch(request('files/sign','POST',{keys:[mainPhoto.key]},'friend-code'),env)).status,400); // cannot sign another workspace's photo
+ assert.equal((await worker.fetch(request('files/sign','POST',{keys:[friendPhoto.key]},'unit-code'),env)).status,400);
+ assert.equal((await worker.fetch(request('files/sign','POST',{keys:[friendPhoto.key]},'friend-code'),env)).status,200);
+ assert.equal((await worker.fetch(new Request('https://unit.example/api/cloud?route=files&key='+encodeURIComponent(mainPhoto.key),{headers:{'x-deal-code':'friend-code'}}),env)).status,400);
+});

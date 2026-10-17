@@ -5,7 +5,7 @@ import { ChangeEvent, FormEvent, MouseEvent as ReactMouseEvent, useEffect, useMe
 import { listingPhotoNames, actualListingPhotos } from "../lib/listing";
 import { buildMonthlyLedger } from "../lib/finance";
 import { Pricing } from "../lib/Pricing";
-import { apiFetch } from "../lib/cloud";
+import { apiFetch, storageKey } from "../lib/cloud";
 import { useLedgerSync } from "../lib/use-ledger-sync";
 import { validateState, serializeState, validDate, businessDate } from "../lib/state";
 import { marketplaceLinks, registrationState, type MarketplaceLink } from "../lib/marketplace";
@@ -648,7 +648,7 @@ export default function Home() {
       revisionRef.current = payload.revision;
       lastSyncedJsonRef.current = restoredJson;
       pendingLocalChangesRef.current = false;
-      try { localStorage.setItem(KEY, restoredJson); } catch { note("서버 복원됨 · 브라우저 백업 실패"); }
+      try { localStorage.setItem(storageKey(KEY), restoredJson); } catch { note("서버 복원됨 · 브라우저 백업 실패"); }
       setState(restored);
       setSync({ status: `revision ${payload.restoredFromRevision} 복원 완료`, revision: payload.revision, updatedAt: payload.updatedAt, conflict: false });
       setLoadIssue("");
@@ -1416,10 +1416,10 @@ export default function Home() {
         <Setting label="기본 판매 배송비" value={state.settings.defaultShipping} suffix="원" onChange={v => update(s => ({ ...s, settings: { ...s.settings, defaultShipping: v } }))} />
       </div></section>
       <section className="card"><p className="eyebrow">DATA SAFETY</p><h2>서버 저장·백업</h2><p className="muted">같은 ChatGPT 계정으로 로그인하면 PC·휴대폰 어디서든 같은 서버 데이터를 불러옵니다. 재고·판매·자금·대출·시세는 D1에 자동 저장되고 최근 변경본 30개가 보관되며, 상품사진·증빙은 R2에 별도 저장됩니다.</p>
-        <div className="backup-box"><button className="primary" onClick={exportBackup}>원장 JSON 백업</button><button className="secondary" disabled={portableBusy} onClick={exportPortableBackup}>{portableBusy ? "사진 백업 중" : "사진 포함 백업"}</button><button className="secondary" onClick={exportAllExcel}>전체 엑셀 내보내기</button><button className="secondary" onClick={() => { const raw=localStorage.getItem("deal_hunter_v5_recovery"); if(!raw)return note("보존된 이전 로컬본이 없습니다."); download(new Blob([raw],{type:"application/json"}),`Deal_Hunter_이전로컬본_${today()}.json`); }}>이전 로컬본 보관</button><button className="secondary" onClick={() => fileRef.current?.click()}>기존 데이터 가져오기</button><button className="secondary" onClick={loadServerVersions}>서버 이전 버전</button><input ref={fileRef} hidden type="file" accept=".json,.html,text/html,application/json" onChange={importBackup} /></div>
+        <div className="backup-box"><button className="primary" onClick={exportBackup}>원장 JSON 백업</button><button className="secondary" disabled={portableBusy} onClick={exportPortableBackup}>{portableBusy ? "사진 백업 중" : "사진 포함 백업"}</button><button className="secondary" onClick={exportAllExcel}>전체 엑셀 내보내기</button><button className="secondary" onClick={() => { const raw=localStorage.getItem(storageKey("deal_hunter_v5_recovery")); if(!raw)return note("보존된 이전 로컬본이 없습니다."); download(new Blob([raw],{type:"application/json"}),`Deal_Hunter_이전로컬본_${today()}.json`); }}>이전 로컬본 보관</button><button className="secondary" onClick={() => fileRef.current?.click()}>기존 데이터 가져오기</button><button className="secondary" onClick={loadServerVersions}>서버 이전 버전</button><input ref={fileRef} hidden type="file" accept=".json,.html,text/html,application/json" onChange={importBackup} /></div>
         <div className="storage-info"><span>저장 상태</span><code>{sync.status} · revision {sync.revision}</code><small>{sync.updatedAt ? `마지막 서버 저장 ${new Date(sync.updatedAt).toLocaleString("ko-KR")}` : "최초 저장 대기 중"} · 새 PC 로그인 시 서버 최신본을 자동으로 불러오며 브라우저에는 비상 복구본도 남습니다.</small></div>{serverNeedsInitialCommit && <div className="initial-server-warning"><b>새 서버가 비어 있습니다.</b><small>기존 백업 확인 전에는 자동 저장하지 않습니다.</small><button className="primary" onClick={commitInitialServerState}>현재 데이터를 최초 서버 기준본으로 저장</button></div>}
         {versionsOpen && <div className="version-box"><div className="version-head"><b>서버 자동 복원 기록</b><button className="secondary" onClick={() => setVersionsOpen(false)}>닫기</button></div><small>현재 데이터를 덮어쓰기 전에 현재 상태를 다시 보관하므로 복원 작업 자체도 되돌릴 수 있습니다.</small>{serverVersions.length ? <div className="version-list">{serverVersions.map(v => <div className="version-row" key={v.id}><span><b>revision {v.revision}</b><small>{new Date(v.createdAt).toLocaleString("ko-KR")}</small></span><button className="secondary" disabled={restoringVersion} onClick={() => restoreServerVersion(v.id, v.revision)}>이 상태로 복원</button></div>)}</div> : <p className="muted">아직 이전 서버 버전이 없습니다. 서버 저장이 누적되면 최대 30개가 표시됩니다.</p>}</div>}
-        {sync.conflict && <div className="conflict-actions"><button className="secondary" onClick={downloadConflictBackup}>내 변경사항 JSON 보관</button><button className="secondary" onClick={() => { downloadConflictBackup(); try { localStorage.removeItem("deal_hunter_v5_draft"); } catch {} location.reload(); }}>내 변경 백업 후 서버 최신본 사용</button></div>}
+        {sync.conflict && <div className="conflict-actions"><button className="secondary" onClick={downloadConflictBackup}>내 변경사항 JSON 보관</button><button className="secondary" onClick={() => { downloadConflictBackup(); try { localStorage.removeItem(storageKey("deal_hunter_v5_draft")); } catch {} location.reload(); }}>내 변경 백업 후 서버 최신본 사용</button></div>}
         <p className="muted">원장 초기화 기능은 제거했습니다. 변경 전 JSON 백업과 서버 복원 기록을 사용하세요.</p>
       </section>
       <section className="card wide-card"><SectionTitle title="최근 작업 이력" /><div className="audit">{state.audit.slice(0, 12).map((a, i) => <div key={`${a.at}-${i}`}><span>{new Date(a.at).toLocaleString("ko-KR")}</span><b>{a.action}</b></div>)}</div></section>

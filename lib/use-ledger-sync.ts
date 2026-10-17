@@ -1,14 +1,16 @@
 import {useEffect,useRef,useState} from 'react';
-import {apiFetch,hydrateFiles} from './cloud';
+import {apiFetch,hydrateFiles,storageKey,currentWorkspace} from './cloud';
 import {serializeState,validateState} from './state';
 import {SaveQueue} from './save-queue';
-const KEY='resell_os_v4_state', DRAFT='deal_hunter_v5_draft', RECOVERY='deal_hunter_v5_recovery';
+const BASE_KEY='resell_os_v4_state', BASE_DRAFT='deal_hunter_v5_draft', BASE_RECOVERY='deal_hunter_v5_recovery';
 export function useLedgerSync<T>(state:T,setState:(value:T|((s:T)=>T))=>void,initial:T,migrate:(raw:unknown)=>T) {
   const [ready,setReady]=useState(false),[serverLoading,setServerLoading]=useState(true),[isSaving,setIsSaving]=useState(false);
   const [sync,setSync]=useState({status:'불러오는 중',revision:0,updatedAt:'',conflict:false});
   const [loadIssue,setLoadIssue]=useState(''),[serverNeedsInitialCommit,setServerNeedsInitialCommit]=useState(false),[loadNonce,setLoadNonce]=useState(0);
   const revisionRef=useRef(0),lastSyncedJsonRef=useRef(''),pendingLocalChangesRef=useRef(false), latest=useRef(state),generation=useRef(0),blocked=useRef(false),localFailed=useRef(false);
   const migration=useRef(migrate);migration.current=migrate;latest.current=state;
+  // 작업공간(접속 코드)별 브라우저 저장 키
+  const KEY=storageKey(BASE_KEY), DRAFT=storageKey(BASE_DRAFT), RECOVERY=storageKey(BASE_RECOVERY), isMain=currentWorkspace()==='main';
   const persist=(value:T,pending:boolean)=>{
     try {localStorage.setItem(DRAFT,JSON.stringify({state:JSON.parse(serializeState(value)),baseRevision:revisionRef.current,pending}));localFailed.current=false;return true;}
     catch {localFailed.current=true;setSync(s=>({...s,status:'브라우저 백업 실패 · JSON 백업 필요'}));return false;}
@@ -32,13 +34,15 @@ export function useLedgerSync<T>(state:T,setState:(value:T|((s:T)=>T))=>void,ini
       let local=initial, draft:{state:T;baseRevision:number;pending:boolean}|null=null;
       try {
         const saved=localStorage.getItem(DRAFT);if(saved){if(!localStorage.getItem(RECOVERY))localStorage.setItem(RECOVERY,saved);draft=JSON.parse(saved);validateState(draft?.state);local=migration.current(draft!.state);}
-        else {const raw=localStorage.getItem(KEY)||localStorage.getItem('seller_os_v1_state');if(raw){const parsed=JSON.parse(raw);validateState(parsed);local=migration.current(parsed);localStorage.setItem(RECOVERY,raw);}}
+        else {const raw=localStorage.getItem(KEY)||(isMain?localStorage.getItem('seller_os_v1_state'):null);if(raw){const parsed=JSON.parse(raw);validateState(parsed);local=migration.current(parsed);localStorage.setItem(RECOVERY,raw);}}
       }catch{setLoadIssue('local');setSync(s=>({...s,status:'로컬 백업 오류 · 원본 보존'}));}
       if(cancelled)return;
       latest.current=local;setState(local);setReady(true);
       try {
         const response=await apiFetch('/api/state');
         if(cancelled||currentGeneration!==generation.current)return;
+        // 친구 등 새 작업공간: 빈 원장에서 시작해 첫 변경부터 자동 저장 (기존 'main' 원장은 아래 수동 최초 저장 그대로)
+        if(response.status===404&&!isMain){revisionRef.current=0;lastSyncedJsonRef.current=serializeState(initial);blocked.current=false;setServerNeedsInitialCommit(false);setLoadIssue('');setSync({status:'새 원장 · 첫 저장 대기',revision:0,updatedAt:'',conflict:false});return;}
         if(response.status===404){revisionRef.current=0;lastSyncedJsonRef.current=serializeState(local);setServerNeedsInitialCommit(true);setLoadIssue('empty');setSync({status:'최초 원장 가져오기·저장 대기',revision:0,updatedAt:'',conflict:false});return;}
         if(!response.ok)throw new Error('load');
         const payload=await response.json();validateState(payload.state);
