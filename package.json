@@ -11,7 +11,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/worker.test.mjs tests/backend.test.mjs tests/display.test.mjs",
-    "preview:live": "npm run build && node scripts/live-preview.mjs"
+    "preview:live": "npm run build && node scripts/live-preview.mjs",
+    "deploy:cf": "npm run build && node -e \"require('fs').rmSync('dist/client/_redirects',{force:true})\" && wrangler deploy"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
@@ -30,7 +31,8 @@
     "playwright": "1.62.1",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
-    "vite": "8.0.13"
+    "vite": "8.0.13",
+    "wrangler": "^4.151.2"
   },
   "type": "module",
   "displayName": "Deal Hunter V5"

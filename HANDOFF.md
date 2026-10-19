@@ -3,6 +3,14 @@
 > 이 파일에는 코드 작업 내용과 다음 작업 방향만 적는다. 상품코드·가격·판매일·게시물 번호·계정명 등 원장/판매 상세는
 > 저장소 밖 `../private/HANDOFF-private.md`에 적는다. (저장소가 공개될 수 있음)
 
+## 2026-10-20 — Claude Code: 운영을 사용자 Cloudflare로 이전 (사용자 승인 후 원장·사진 복사)
+- 새 운영 주소: https://deal-hunter.minsik2e5.workers.dev. 예전 ChatGPT Sites 사이트는 읽기만 했고 그대로 둠.
+- 구성(`wrangler.jsonc`): Worker `deal-hunter`, D1 `deal-hunter`(APAC, drizzle 0000 적용), KV `deal-hunter-photos`(R2 미사용: 계정에 R2 미활성). 정적 파일은 SPA 처리, `/api/*`만 Worker 먼저.
+- 서버 변경: `photoStore()` R2(BUCKET) 없으면 KV(PHOTOS) 사용(키 동일), 서버 이전 버전은 작업공간마다 최근 `KEEP_VERSIONS`=200개만 보관. 테스트 20개 통과.
+- 이전 결과: 기존 사이트 revision 22의 원장(상품 179개)을 새 D1 `main` revision 1로 그대로 넣음(SHA-256 일치 확인), 사진 194장(136.8MB)을 같은 키로 KV에 넣고 새 사이트 서명 링크로 194장 모두 원본과 바이트 일치 확인. 옛 서버 버전 기록은 옮기지 않음(백업 폴더에만 있음).
+- 비밀: `DEAL_HUNTER_ACCESS_HASH`(기존 코드와 동일), `FILE_SIGNING_KEY`(새로 생성). 백업·해시·서명키는 저장소 밖 `../deal-hunter-private/`.
+- 배포: `npm run deploy:cf`. Cloudflare는 기존 `_redirects`(`/* /index.html 200`)를 무한 루프로 거부해서 배포 직전에 빌드 결과에서만 지움.
+
 ## 2026-10-18 — Claude Code: 접속 코드별 작업공간(친구용 별도 원장) + 멀티챗 다운로드 (원장 쓰기 없음)
 - 서버(`worker/index.ts`): 접속 코드 → 작업공간 이름. `DEAL_HUNTER_ACCESS_HASH`는 기존 `main`(변경 없음). 새 런타임 비밀 `DEAL_HUNTER_WORKSPACES`="friend1:<sha256>,friend2:<sha256>"로 추가 코드 등록. 'main'은 재정의 불가.
   - 원장(ledger)·버전(ledger_versions)·사진(R2 키 `<작업공간>/…`)이 작업공간별로 분리. 다른 작업공간 사진 키는 서명 거부(400). `GET route=whoami` → `{workspace}`.

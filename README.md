@@ -2,7 +2,9 @@
 
 Existing frontend and Cloudflare Worker API source. Do not rewrite as a new project.
 
-Production: https://deal-hunter-v5.wwzb-64.chatgpt.site
+Production: https://deal-hunter.minsik2e5.workers.dev (Cloudflare Workers + D1 + KV, deploy with `npm run deploy:cf`)
+
+Previous production (read-only original, not deployable from the current account): https://deal-hunter-v5.wwzb-64.chatgpt.site
 
 Node 24 recommended. Run npm ci, npm run typecheck, npm test, npm run build.
 

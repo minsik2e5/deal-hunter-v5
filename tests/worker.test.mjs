@@ -1,5 +1,5 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import fs from 'node:fs';
-import worker,{commit} from '../worker/index.ts';
+import worker,{commit,KEEP_VERSIONS} from '../worker/index.ts';
 const hash=async s=>Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s))).toString('hex');
 function database(){const sqlite=new DatabaseSync(':memory:');for(const f of fs.readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')))sqlite.exec(fs.readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));const db={prepare(sql){let values=[];return{bind(...v){values=v;return this;},async first(){return sqlite.prepare(sql).get(...values)||null;},async all(){return {results:sqlite.prepare(sql).all(...values)};},execute(){return {results:sqlite.prepare(sql).all(...values)};}};},async batch(statements){sqlite.exec('BEGIN');try{const r=statements.map(s=>s.execute());sqlite.exec('COMMIT');return r;}catch(e){sqlite.exec('ROLLBACK');throw e;}}};return {db,sqlite};}
 const state=()=>({schemaVersion:6,items:[{id:'real-code',purchasePrice:50000,actualPrice:0,saleDate:'',inventoryStatus:'재고',name:'Original'}],settings:{feeRate:.035},accounts:[],debts:[]});
@@ -34,4 +34,25 @@ test('each access code opens its own workspace: separate ledgers, versions and p
  assert.equal((await worker.fetch(request('files/sign','POST',{keys:[friendPhoto.key]},'unit-code'),env)).status,400);
  assert.equal((await worker.fetch(request('files/sign','POST',{keys:[friendPhoto.key]},'friend-code'),env)).status,200);
  assert.equal((await worker.fetch(new Request('https://unit.example/api/cloud?route=files&key='+encodeURIComponent(mainPhoto.key),{headers:{'x-deal-code':'friend-code'}}),env)).status,400);
+});
+test('photos work on KV storage when R2 is absent (same keys, content type kept)',async()=>{
+ const {env}=await environment();delete env.BUCKET;const kv=new Map();
+ env.PHOTOS={async put(k,v,o){kv.set(k,{value:Buffer.from(v),metadata:o?.metadata||null});},async getWithMetadata(k){const o=kv.get(k);return o?{value:o.value.buffer.slice(o.value.byteOffset,o.value.byteOffset+o.value.length),metadata:o.metadata}:{value:null,metadata:null};}};
+ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4U0AAAAASUVORK5CYII=','base64');
+ const form=new FormData();form.set('file',new File([png],'kv.png',{type:'image/png'}));
+ const up=await (await worker.fetch(new Request('https://unit.example/api/cloud?route=files',{method:'POST',headers:{'x-deal-code':'unit-code'},body:form}),env)).json();
+ assert.match(up.key,/^main\//);assert.equal(kv.get(up.key).metadata.contentType,'image/png');
+ const raw=await worker.fetch(new Request(up.url),env);assert.equal(raw.status,200);assert.equal(raw.headers.get('content-type'),'image/png');assert.deepEqual(Buffer.from(await raw.arrayBuffer()),png);
+ // 옮겨 온 사진(키를 그대로 KV에 넣은 경우)도 서명 링크로 열린다
+ kv.set('main/00000000-0000-0000-0000-000000000000-old.png',{value:png,metadata:{contentType:'image/png'}});
+ const signedOld=await (await worker.fetch(request('files/sign','POST',{keys:['main/00000000-0000-0000-0000-000000000000-old.png']}),env)).json();
+ assert.equal((await worker.fetch(new Request(Object.values(signedOld.urls)[0]),env)).status,200);
+});
+test('server keeps only the latest KEEP_VERSIONS snapshots per workspace',async()=>{
+ const {env,sqlite}=await environment();const s=state();
+ for(let r=0;r<KEEP_VERSIONS+5;r++)assert.equal((await commit(env.DB,r,{...s,items:[{...s.items[0],name:'v'+r}]})).conflict,false);
+ assert.equal(sqlite.prepare('SELECT count(*) AS n FROM ledger_versions').get().n,KEEP_VERSIONS);
+ assert.equal(sqlite.prepare('SELECT min(revision) AS r FROM ledger_versions').get().r,5); // 가장 오래된 것부터 정리
+ await commit(env.DB,0,s,undefined,'friend1');
+ assert.equal(sqlite.prepare("SELECT count(*) AS n FROM ledger_versions WHERE workspace='main'").get().n,KEEP_VERSIONS);
 });

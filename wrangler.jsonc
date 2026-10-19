@@ -1,0 +1,23 @@
+// Cloudflare Workers 배포 설정 (minsik2e5 계정). 배포: npm run build → npx wrangler@4 deploy
+// 비밀값(DEAL_HUNTER_ACCESS_HASH, FILE_SIGNING_KEY, DEAL_HUNTER_WORKSPACES)은 wrangler secret 으로만 넣는다. 여기에 적지 말 것.
+{
+  "name": "deal-hunter",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2025-09-01",
+  "workers_dev": true, // https://deal-hunter.minsik2e5.workers.dev
+  "preview_urls": false,
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "deal-hunter", "database_id": "aea27bce-1098-4acb-aef6-6ae7eaff813d", "migrations_dir": "drizzle" }
+  ],
+  // R2 대신 KV에 사진 저장 (R2를 켜면 BUCKET 바인딩을 추가하면 R2가 우선)
+  "kv_namespaces": [
+    { "binding": "PHOTOS", "id": "8fd12e0cb06441e0880bbce4c4340cdc" }
+  ],
+  "observability": { "enabled": true }
+}

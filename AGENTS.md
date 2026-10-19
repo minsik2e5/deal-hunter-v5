@@ -1,7 +1,8 @@
 # Deal Hunter V5 — AI 공통 작업 규칙 (Codex · Claude Code 공용)
 
 기존 앱을 이어서 작업한다. 새 프로젝트로 다시 만들지 않는다.
-운영: https://deal-hunter-v5.wwzb-64.chatgpt.site (ChatGPT Sites, Cloudflare Worker + D1 원장 + R2 사진)
+운영: https://deal-hunter.minsik2e5.workers.dev (사용자 Cloudflare 계정 minsik2e5, Worker + D1 원장 `deal-hunter` + KV 사진 `deal-hunter-photos`, 2026-10-20 이전)
+예전 운영: https://deal-hunter-v5.wwzb-64.chatgpt.site (ChatGPT Sites, 현재 계정으로 배포 불가. 읽기 전용 원본으로 그대로 둠)
 
 ## 시작할 때
 1. HANDOFF.md를 읽는다. 작업을 마치면 HANDOFF.md 맨 위에 날짜·작업자(Codex/Claude)·변경 내용을 적고 커밋한다.
@@ -20,8 +21,10 @@
 - 채팅 메시지 자동 발송, 숨은 API·쿠키·세션 파일 읽기는 하지 않는다.
 
 ## 배포
-- 코드 변경은 이 저장소에 커밋한다. 운영 배포는 기존 Sites 프로젝트(Codex 쪽)에서 한다.
-- Render 등 다른 호스팅으로 옮기려면 D1/R2 → 다른 DB·스토리지 이전이 필요하다. 별도 계획 없이 시도하지 않는다.
+- 코드 변경은 이 저장소에 커밋한다. 운영 배포는 사용자 승인 후 `npm run deploy:cf` (빌드 → `_redirects` 제외 → `wrangler deploy`, 설정은 `wrangler.jsonc`).
+- 비밀값은 `wrangler secret put`으로만: `DEAL_HUNTER_ACCESS_HASH`(main 코드 해시), `FILE_SIGNING_KEY`, `DEAL_HUNTER_WORKSPACES`(친구 코드, `node scripts/hash-code.mjs <이름>`). 저장소·채팅에 적지 않는다.
+- 사진은 R2 대신 KV(`PHOTOS`)에 같은 키(`<작업공간>/<uuid>-이름`)로 저장한다. 서버 이전 버전은 작업공간마다 최근 200개만 보관한다.
+- D1 원장을 직접 바꾸는 명령(`wrangler d1 execute`)은 사용자 승인 없이 쓰지 않는다. 바꾸기 전 `SELECT`로 백업한다.
 
 ## 파일 지도
 `app/page.tsx` 화면 · `lib/state.ts` 상태·검증 · `lib/finance.ts` 정산 · `lib/marketplace.ts` 번장 링크 · `lib/Pricing.tsx` 가격·장기재고 · `worker/index.ts` API

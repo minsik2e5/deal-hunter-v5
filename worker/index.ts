@@ -1,11 +1,28 @@
 import {validateState,serializeState} from '../lib/state.ts';
 type Statement={bind:(...values:unknown[])=>Statement;first:()=>Promise<any>;all:()=>Promise<any>};
 type Database={prepare:(sql:string)=>Statement;batch:(statements:Statement[])=>Promise<any[]>};
-type Env={DB:Database;BUCKET:any;ASSETS:{fetch:(r:Request)=>Promise<Response>};DEAL_HUNTER_ACCESS_HASH?:string;DEAL_HUNTER_WORKSPACES?:string;FILE_SIGNING_KEY?:string};
+type KV={put:(key:string,value:ArrayBuffer|Uint8Array,options?:{metadata?:Record<string,string>})=>Promise<void>;getWithMetadata:(key:string,options:{type:'arrayBuffer'})=>Promise<{value:ArrayBuffer|null;metadata:Record<string,string>|null}>};
+type Env={DB:Database;BUCKET?:any;PHOTOS?:KV;ASSETS:{fetch:(r:Request)=>Promise<Response>};DEAL_HUNTER_ACCESS_HASH?:string;DEAL_HUNTER_WORKSPACES?:string;FILE_SIGNING_KEY?:string};
 const encoder=new TextEncoder(),WORKSPACE='main';
 const operatingHash=''; // Configure DEAL_HUNTER_ACCESS_HASH in the production runtime.
 // Each access code opens its own workspace (ledger, versions, photos). DEAL_HUNTER_ACCESS_HASH opens 'main'.
 // DEAL_HUNTER_WORKSPACES adds more as a runtime secret: "friend1:<sha256 hex>,friend2:<sha256 hex>". Never commit it.
+// 사진 저장소: R2(BUCKET)가 있으면 R2, 없으면 KV(PHOTOS)를 같은 모양으로 감싸 쓴다 (사진 키는 동일).
+export function photoStore(env:{BUCKET?:any;PHOTOS?:KV}){
+ if(env.BUCKET)return env.BUCKET;
+ const kv=env.PHOTOS;if(!kv)throw new Error('사진 저장소 설정이 필요합니다.');
+ return {
+  async put(key:string,value:ArrayBuffer,opts:{httpMetadata?:{contentType?:string};customMetadata?:Record<string,string>}={}){
+   await kv.put(key,value,{metadata:{contentType:opts.httpMetadata?.contentType||'application/octet-stream',...(opts.customMetadata||{})}});
+  },
+  async get(key:string){
+   const {value,metadata}=await kv.getWithMetadata(key,{type:'arrayBuffer'});
+   return value?{body:value,httpMetadata:{contentType:metadata?.contentType||'application/octet-stream'}}:null;
+  },
+ };
+}
+// 서버 이전 버전은 작업공간마다 최근 이만큼만 남긴다 (무료 D1 용량 보호)
+export const KEEP_VERSIONS=200;
 const WORKSPACE_NAME=/^[a-z0-9][a-z0-9-]{0,31}$/;
 export function workspaceCodes(env:{DEAL_HUNTER_ACCESS_HASH?:string;DEAL_HUNTER_WORKSPACES?:string}):[string,string][]{
  const list:[string,string][]=[[WORKSPACE,(env.DEAL_HUNTER_ACCESS_HASH||operatingHash).toLowerCase()]];
@@ -45,6 +62,7 @@ export async function commit(db:Database,expected:number,state:any,versionId?:nu
  else{statements.push(db.prepare('UPDATE ledger SET state_json=?,revision=revision+1,updated_at=? WHERE workspace=? AND revision=? RETURNING revision,updated_at').bind(serializeState(state),stamp,workspace,expected));}
  statements.push(db.prepare('SELECT revision,state_json,updated_at FROM ledger WHERE workspace=?').bind(workspace));
  if(restore)statements.push(db.prepare('SELECT id,revision FROM ledger_versions WHERE workspace=? AND id=?').bind(workspace,versionId));
+ statements.push(db.prepare('DELETE FROM ledger_versions WHERE workspace=? AND id NOT IN (SELECT id FROM ledger_versions WHERE workspace=? ORDER BY id DESC LIMIT ?)').bind(workspace,workspace,KEEP_VERSIONS));
  const result=await db.batch(statements),changed=result[1].results?.[0],current=result[2].results?.[0];
  if(!changed){if(restore&&current?.revision===expected&&!result[3].results?.length)return {missing:true,conflict:false,revision:current?.revision||0};return {conflict:true,revision:current?.revision||0,updatedAt:current?.updated_at};}
  return {conflict:false,revision:changed.revision,updatedAt:changed.updated_at,...(restore?{state:JSON.parse(current.state_json),restoredFromRevision:result[3].results[0].revision}:{})};
@@ -59,7 +77,7 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
   if(url.pathname==='/api/files/raw'&&request.method==='GET'){
    const key=url.searchParams.get('key')||'',expires=Number(url.searchParams.get('expires')),sig=url.searchParams.get('sig')||'';
    if(!validKey(key)||!Number.isSafeInteger(expires)||expires<Math.floor(Date.now()/1000)||expires>Math.floor(Date.now()/1000)+3605||!equal(await mac(env,`${key}:${expires}`),sig))return json({error:'사진 링크가 만료되었습니다. 원장을 다시 열어 주세요.'},403);
-   const object=await env.BUCKET.get(key);if(!object)return json({error:'사진 원본을 확인해 주세요.'},404);
+   const object=await photoStore(env).get(key);if(!object)return json({error:'사진 원본을 확인해 주세요.'},404);
    return new Response(object.body,{headers:{'content-type':object.httpMetadata?.contentType||'application/octet-stream','cache-control':'private,max-age=60','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; sandbox"}});
   }
   const workspace=await workspaceFor(env,request.headers.get('x-deal-code')||'');
@@ -88,7 +106,7 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
    const form=await new Response(bytes,{headers:{'content-type':request.headers.get('content-type')||''}}).formData(),file=form.get('file');if(!(file instanceof File)||file.size<=0||file.size>8000000)return json({error:'파일은 8MB 이하여야 합니다.'},400);
    const buffer=await file.arrayBuffer(),type=fileType(new Uint8Array(buffer));if(!type)return json({error:'사진 또는 PDF 파일만 보관할 수 있습니다.'},400);
    const name=file.name.replace(/[^0-9A-Za-z가-힣._-]/g,'_').replace(/\.\./g,'_').slice(-120)||'file',key=`${workspace}/${crypto.randomUUID()}-${name}`;
-   await env.BUCKET.put(key,buffer,{httpMetadata:{contentType:type},customMetadata:{name:file.name,workspace}});return json({key,name:file.name,type,size:file.size,url:await signed(env,request,key)});
+   await photoStore(env).put(key,buffer,{httpMetadata:{contentType:type},customMetadata:{name:file.name,workspace}});return json({key,name:file.name,type,size:file.size,url:await signed(env,request,key)});
   }
   if(route==='files'&&request.method==='GET'){const key=url.searchParams.get('key')||'';if(!validKey(key,workspace))return json({error:'사진 키를 확인해 주세요.'},400);return json({url:await signed(env,request,key)});}
   if(route==='files/sign'&&request.method==='POST'){
